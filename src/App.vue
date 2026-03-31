@@ -16,10 +16,10 @@
 
     <el-main>
       <div v-show="activeMenu === '1'">
-        <ZipTool />
+        <JavaToTs />
       </div>
       <div v-show="activeMenu === '2'">
-        <JavaToTs />
+        <ZipTool />
       </div>
     </el-main>
   </el-container>
