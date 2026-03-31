@@ -4,12 +4,12 @@
       <div class="logo">实用前端工具</div>
       <el-menu :default-active="activeMenu" @select="(index: string) => activeMenu = index" class="el-menu-vertical">
         <el-menu-item index="1">
-          <el-icon><Document /></el-icon>
-          <span>ZIP 压缩/解压</span>
-        </el-menu-item>
-        <el-menu-item index="2">
           <el-icon><DataAnalysis /></el-icon>
           <span>Java DTO 转 TS</span>
+        </el-menu-item>
+        <el-menu-item index="2">
+          <el-icon><Document /></el-icon>
+          <span>ZIP 压缩/解压</span>
         </el-menu-item>
       </el-menu>
     </el-aside>

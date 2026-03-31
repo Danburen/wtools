@@ -105,11 +105,11 @@ const decompressProgress = ref(0)
 const unzippedFiles = ref<any[]>([])
 
 // --- Compress Functions ---
-const handleCompressChange = (file: any, fileList: any[]) => {
+const handleCompressChange = (fileList: any[]) => {
   compressFiles.value = fileList
 }
 
-const handleCompressRemove = (file: any, fileList: any[]) => {
+const handleCompressRemove = (fileList: any[]) => {
   compressFiles.value = fileList
 }
 
