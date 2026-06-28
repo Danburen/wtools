@@ -166,6 +166,17 @@
 
       <!-- Right: Chart Panel -->
       <div class="chart-panel">
+        <div v-if="chartRendered" class="chart-toolbar">
+          <span class="toolbar-count">
+            <span class="node-dot" />
+            共 {{ nodeCount }} 个节点
+          </span>
+          <div class="toolbar-actions">
+            <el-tooltip content="导出为 PNG 图片" placement="left">
+              <el-button size="small" :icon="Download" @click="exportImage">导出图片</el-button>
+            </el-tooltip>
+          </div>
+        </div>
         <div ref="chartContainer" class="chart-container" />
 
         <!-- Loading echarts from CDN -->
@@ -214,7 +225,7 @@ import { captureScroll, preserveScroll } from '../utils/scrollPreserve'
 import { loadECharts, getECharts, getEChartsState, resetECharts } from '../utils/echarts/echartsManager'
 import type { EChartsLoadState } from '../utils/echarts/echartsManager'
 import { ElMessage } from 'element-plus'
-import { Upload, Refresh, Delete, Platform, Share, EditPen, CircleCloseFilled, DArrowLeft, DArrowRight, Setting, Select, CopyDocument } from '@element-plus/icons-vue'
+import { Upload, Refresh, Delete, Platform, Share, EditPen, CircleCloseFilled, DArrowLeft, DArrowRight, Setting, Select, CopyDocument, Download } from '@element-plus/icons-vue'
 import { useContentCache } from '../utils/contentCache'
 
 // --- Config State ---
@@ -684,6 +695,23 @@ async function handleCopy() {
   }
 }
 
+function exportImage() {
+  if (!chartInstance) return
+  const url = chartInstance.getDataURL({
+    type: 'png',
+    pixelRatio: 2,
+    backgroundColor: '#fff',
+    excludeComponents: ['tooltip'],
+  })
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'tree-visualizer.png'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  ElMessage.success('图片已导出')
+}
+
 // --- Resize Observer ---
 let resizeObserver: ResizeObserver | null = null
 
@@ -807,15 +835,38 @@ onBeforeUnmount(() => {
   min-width: 0;
   min-height: 0;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 .chart-container {
-  width: 100%;
-  height: 100%;
+  flex: 1;
   min-height: 300px;
   border: 1px solid #eef0f5;
-  border-radius: 10px;
+  border-radius: 0 0 10px 10px;
   background: #fff;
   transition: border-color 0.2s;
+}
+.chart-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid #eef0f5;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  background: #fafbfc;
+  flex-shrink: 0;
+}
+.chart-toolbar .toolbar-count {
+  font-size: 12px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chart-toolbar .toolbar-actions {
+  display: flex;
+  gap: 8px;
 }
 .chart-container:hover {
   border-color: #d4dcff;

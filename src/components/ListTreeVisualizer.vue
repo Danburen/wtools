@@ -100,12 +100,26 @@
             已渲染 {{ nodeCount }} / {{ totalNodeCount }} 个节点
           </span>
           <div class="toolbar-actions">
+            <el-button size="small" :icon="Download" @click="exportImage">导出图片</el-button>
             <el-button size="small" :icon="Expand" @click="expandAll">展开全部</el-button>
             <el-button size="small" :icon="Fold" @click="collapseAll">全部折叠</el-button>
           </div>
         </div>
         <div v-if="!rendered" class="list-placeholder">
           <el-empty :image-size="100" description="输入树形文本后点击「渲染树列表」" />
+        </div>
+        <div v-if="h2cLoading" class="list-overlay">
+          <div class="load-progress">
+            <div class="load-spinner" />
+            <div class="load-text">{{ h2cMessage }}</div>
+            <el-progress
+              :percentage="h2cPercent"
+              :text-inside="true"
+              :stroke-width="16"
+              color="#5b73e0"
+              class="load-bar"
+            />
+          </div>
         </div>
         <div v-show="rendered" ref="listContainer" class="list-container" />
       </div>
@@ -123,6 +137,7 @@ import * as d3 from 'd3'
 import { saveAs } from 'file-saver'
 import { getFileIconSVG } from '../utils/fileIcons'
 import { useContentCache } from '../utils/contentCache'
+import { loadHtml2Canvas, getHtml2Canvas, getHtml2CanvasState } from '../utils/html2canvas/html2canvasManager'
 
 // ─── Types ────────────────────────────────────────────────────────
 interface TreeNode {
@@ -159,6 +174,11 @@ const rendered = ref(false)
 const listContainer = ref<HTMLDivElement>()
 
 let treeRoot: TreeNode | null = null
+
+// ─── html2canvas CDN Load State ───────────────────────────────────
+const h2cLoading = ref(false)
+const h2cPercent = ref(0)
+const h2cMessage = ref('')
 
 // ─── Sample Data ──────────────────────────────────────────────────
 import sampleText from '../sample/list_chart.txt?raw'
@@ -521,6 +541,70 @@ async function handleCopy() {
   }
 }
 
+async function exportImage() {
+  if (!treeRoot || !listContainer.value) return
+
+  if (getHtml2CanvasState() !== 'ready') {
+    h2cLoading.value = true
+    try {
+      await loadHtml2Canvas((pct, msg) => {
+        h2cPercent.value = pct
+        h2cMessage.value = msg
+      })
+    } catch (e: unknown) {
+      h2cLoading.value = false
+      ElMessage.error('图片库加载失败: ' + (e instanceof Error ? e.message : String(e)))
+      return
+    }
+  }
+
+  const prevCollapsed = new Map<TreeNode, boolean>()
+  function saveCollapsed(node: TreeNode) {
+    prevCollapsed.set(node, node._collapsed)
+    node._collapsed = false
+    if (node.children) node.children.forEach(saveCollapsed)
+  }
+  saveCollapsed(treeRoot)
+  updateList(treeRoot)
+  await nextTick()
+
+  const container = listContainer.value
+  const origOverflow = container.style.overflow
+  const origHeight = container.style.height
+  container.style.overflow = 'visible'
+  container.style.height = 'auto'
+
+  try {
+    const html2canvas = getHtml2Canvas()
+    if (!html2canvas) throw new Error('html2canvas 不可用')
+
+    h2cMessage.value = '正在生成图片...'
+    h2cPercent.value = 90
+
+    const canvas = await html2canvas(container, {
+      backgroundColor: '#fff',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    })
+
+    canvas.toBlob((blob: Blob | null) => {
+      if (blob) {
+        saveAs(blob, 'tree-list.png')
+        ElMessage.success('图片已导出')
+      }
+    })
+  } catch (e: unknown) {
+    ElMessage.error('图片导出失败: ' + (e instanceof Error ? e.message : String(e)))
+  } finally {
+    container.style.overflow = origOverflow
+    container.style.height = origHeight
+    prevCollapsed.forEach((collapsed, node) => { node._collapsed = collapsed })
+    updateList(treeRoot)
+    h2cLoading.value = false
+  }
+}
+
 onBeforeUnmount(() => {
   if (listContainer.value) {
     d3.select(listContainer.value).selectAll('*').remove()
@@ -603,6 +687,43 @@ onMounted(() => {
 .toolbar-actions {
   display: flex;
   gap: 8px;
+}
+
+/* ── html2canvas Loading Overlay ── */
+.list-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.92);
+  border-radius: 10px;
+  z-index: 20;
+}
+.list-overlay .load-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  max-width: 320px;
+  text-align: center;
+}
+.list-overlay .load-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #5b73e0;
+  border-radius: 50%;
+  animation: h2c-spin 0.8s linear infinite;
+}
+@keyframes h2c-spin {
+  to { transform: rotate(360deg); }
+}
+.list-overlay .load-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
 }
 
 /* ── Wide Screen ── */
