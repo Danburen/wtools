@@ -48,6 +48,10 @@
             <el-icon><Refresh /></el-icon>
             <span>清除 CDN 缓存</span>
           </el-button>
+          <el-button text class="drawer-util-btn" @click="aboutDialogVisible = true">
+            <el-icon><InfoFilled /></el-icon>
+            <span>关于</span>
+          </el-button>
         </div>
       </div>
     </el-drawer>
@@ -107,11 +111,22 @@
                 <el-icon><Refresh /></el-icon>
               </el-button>
             </el-tooltip>
+            <el-tooltip content="关于" placement="right">
+              <el-button text class="util-btn" @click="aboutDialogVisible = true">
+                <el-icon><InfoFilled /></el-icon>
+              </el-button>
+            </el-tooltip>
           </template>
-          <el-button v-else text class="util-btn" @click="clearCdnCache">
-            <el-icon><Refresh /></el-icon>
-            <span>清除缓存</span>
-          </el-button>
+          <template v-if="!sidebarCollapsed">
+            <el-button text class="util-btn" @click="clearCdnCache">
+              <el-icon><Refresh /></el-icon>
+              <span>清除缓存</span>
+            </el-button>
+            <el-button text class="util-btn" @click="aboutDialogVisible = true">
+              <el-icon><InfoFilled /></el-icon>
+              <span>关于</span>
+            </el-button>
+          </template>
         </div>
 
         <div class="sidebar-footer">
@@ -189,6 +204,37 @@
         />
       </svg>
     </a>
+
+    <!-- About Dialog -->
+    <el-dialog v-model="aboutDialogVisible" title="关于 wtools" width="560px" top="6vh" :close-on-click-modal="false">
+      <div class="about-body">
+        <p class="about-desc">wtools 是一个纯前端工具集，所有计算在浏览器中完成，无需后端服务。</p>
+        <p class="about-desc">
+          <el-icon><Link /></el-icon>
+          <a href="https://github.com/Danburen/wtools" target="_blank" rel="noopener noreferrer">https://github.com/Danburen/wtools</a>
+        </p>
+
+        <el-divider />
+
+        <h4 class="about-heading">使用的开源库 (Open Source Libraries)</h4>
+        <div class="lib-grid">
+          <div v-for="lib in libraries" :key="lib.name" class="lib-row">
+            <span class="lib-name">{{ lib.name }}</span>
+            <el-tag size="small" :type="libTagType(lib.license)" effect="plain">{{ lib.license }}</el-tag>
+          </div>
+        </div>
+
+        <el-divider />
+
+        <p class="about-license">
+          wtools 使用 <strong>MIT 许可证</strong> 开源。
+          Copyright &copy; 2026 Cong Huang.
+        </p>
+      </div>
+      <template #footer>
+        <el-button @click="aboutDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -201,6 +247,38 @@ import { resetCdnCache } from './utils/cacheReset'
 const route = useRoute()
 const sidebarCollapsed = ref(false)
 const drawerOpen = ref(false)
+const aboutDialogVisible = ref(false)
+
+interface LibEntry {
+  name: string
+  license: string
+}
+
+const libraries: LibEntry[] = [
+  { name: 'Vue 3', license: 'MIT' },
+  { name: 'Vue Router', license: 'MIT' },
+  { name: 'Element Plus', license: 'MIT' },
+  { name: '@element-plus/icons-vue', license: 'MIT' },
+  { name: 'Vite', license: 'MIT' },
+  { name: 'TypeScript', license: 'Apache 2.0' },
+  { name: 'CodeMirror 6', license: 'MIT' },
+  { name: '@codemirror/lang-python', license: 'MIT' },
+  { name: 'ECharts', license: 'Apache 2.0' },
+  { name: 'D3.js', license: 'ISC' },
+  { name: 'Pyodide', license: 'MPL 2.0' },
+  { name: 'ffmpeg.wasm', license: 'MIT' },
+  { name: 'JSZip', license: 'MIT / GPL 3.0' },
+  { name: 'libarchive.js', license: 'MIT' },
+  { name: 'file-saver', license: 'MIT' },
+  { name: 'ESLint', license: 'MIT' },
+  { name: 'vue-tsc', license: 'MIT' },
+]
+
+function libTagType(license: string): 'success' | 'warning' | 'info' {
+  if (license.startsWith('MIT') || license === 'ISC') return 'success'
+  if (license === 'Apache 2.0') return 'warning'
+  return 'info'
+}
 
 // Close drawer on resize to desktop
 function onResize() {
@@ -515,6 +593,64 @@ onBeforeUnmount(() => {
 /* ============================
    Responsive: Mobile
    ============================ */
+/* ============================
+   About Dialog
+   ============================ */
+.about-body {
+  padding: 4px 0;
+}
+.about-desc {
+  margin: 6px 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.about-desc a {
+  color: #5b73e0;
+  text-decoration: none;
+}
+.about-desc a:hover {
+  text-decoration: underline;
+}
+.about-heading {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+.lib-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lib-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #f9fafb;
+  transition: background 0.15s;
+}
+.lib-row:hover {
+  background: #f3f4f6;
+}
+.lib-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+.about-license {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
 @media (max-width: 767px) {
   .mobile-topbar {
     display: flex;
